@@ -1,0 +1,14 @@
+#Trabalhar no ambiente virtual
+#criar ambiente virutal
+
+mkvirtualenv "NOME DO AMBIENTE"
+ guppe ( nome do ambiente feito em aula)
+
+#entrar no ambiente
+
+workon "NOME DO AMBIENTE"
+
+# sair do ambiente
+deactivate
+
+

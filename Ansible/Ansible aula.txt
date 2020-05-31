@@ -1,0 +1,476 @@
+INFRAESTRUTURA COMO CODIGO
+
+host 192.168.0.166
+server 192.168.0.168
+user: kamiya
+senha: loves
+
+playbooks
+Playbooks are the files where Ansible code is written. 
+Playbooks are written in YAML format. 
+YAML stands for Yet Another Markup Language. 
+Playbooks are one of the core features of Ansible and tell Ansible what to execute.
+
+Idempotente
+-Garante o estado (procura deixar as maquinas na maneira que esta no playbook)
+
+Ad-hoc
+Executa comandos arbitrarios
+-
+
+#Mudar localização do inventario
+padrão /etc/ansible/hosts
+
+usar git ou outro versionador
+
+ex:
+ansible --inventory <path> ou -i <path>
+ansible-playbook --inventory <path> ou -i <path>
+
+
+Inventario - Pratica 1
+
+more /etc/ansible/hosts
+
+vi /etc/ansible/hosts
+
+[webservers]
+serverb.lab.example.com
+
+(exit)
+
+ansible all --list-hosts (lista todos hosts)
+
+ansible ungrouped --list-hosts ( hosts sem grupo)
+
+ansible "nomedogrupo" --list-hosts ( hosts dentro de um grupo )
+
+
+Inventario Pratica2
+
+mkdir /home/$USER/aula-ansible/
+touch /home/$USER/aula-ansible/inventory
+vim /home/$USER/aula-ansible/inventory
+
+#criados grupos
+
+ansible ("host-or-group") -i (inventory"arquivo") --list-hosts
+
+ansible all -i inventory --list-hosts
+
+ansible ungrouped -i inventory --list-hosts
+
+ansible (grupo) -i inventory --list-hosts
+
+#mostrar uma arvore do inventario
+
+ansible-inventory -vvv -i inventory --graph
+
+#Ver qual arquivo esta em uso
+
+ansible --version
+
+ansible <servers> --list-hosts -v
+
+ansible prod -i <inventory> --list-hosts -v
+
+ansible-inventory -vvv graph
+
+ansible-inventory -vvv -i <inventory> --graph
+
+-------------------------------
+
+# Conteudo do arquivo
+exemplo:
+[defaults] define padroes para operacaoes Ansible
+
+[privilege_escalation]
+become = true
+become_method = sudo
+become_user = root
+become_ask_pass = true
+
+-------------------------------------
+comando ad hock pratica 02 ex:
+
+ansbile (vm) -m command -a 'comando'
+ansbible web -m command -a 'id'
+
+ansible web -m command -a 'ls /home/)'
+
+ansible-doc -l ( lista todos os modulos instalados )
+ansible-doc ping
+
+ansible<host> -m module [-a 'module arguments'] [-i inventory]
+
+ex modulos:
+
+copy: copiar um arquivo local par ao host gerenciado
+file: definir permissoes e oturas propriedade dos arquivos
+lineinfirle: garantir que uma linha especifica esteja ou nao em um arquivo
+synchronize: sincronizar o conteudo usando rsync
+
+user: gerenciar usuario
+#comando
+ansible -m user -a 'name=newbie uid=4000 state=present' servera.lab.example.com
+
+-o ( utilizado no final para que a informação saia mais completa e sem quebrar linha)
+ex:
+ansible<host> -m command -a /usr/bin/hostname -o
+
+#shell
+
+shell diferente ao command pode se executar bloco de codigos, dá acesso a variaveis de ambiente
+
+Ansible<host> -m command -a set
+Ansible <host> -m shell -a set
+
+#modulo raw pode executar comandos diretamente no shell remoto sem precisar do python
+
+#Possivel passar por linha de comando parametros que substituiem os valores que estao no ansible.cfg
+foto na doc
+
+#exemplo criar um arquivo remoto com conteudo "Este arquivo"
+ansible all -m copy -a 'content="Este arquivo" dest=/home/kamiya/teste.txt'
+
+#exemplo copiar arquivo do host para o remoto
+
+ansible all -m copy -a "src=./aluno.json dest=/home/kamiya"
+
+PLAYBOOK
+ansible-playbook <nome do arquivo.yml> 
+--check ( executa o comando e ve se retorna erro mas nao faz alteração na vm)
+ou
+ansible-playbook -C <nome do arquivo.yml>
+ansible-playbook --syntax-check <nome-do-arquivo.yml> ( só verificar a sintaxe sem acessar a vm )
+
+---------------------------------------------------------------
+
+#setando para nao pedir senha no root
+
+cd/etc visudo
+%sudo ALL=(ALL:ALL) NOPASSWD: ALL
+ou
+na linha de comando # usermod -aG root <user>
+
+------------------------------------------------------
+
+DEFININDO IP NO INVENTORY
+
+vim inventory
+web ansible_host=<ip>
+
+---------------------------------------------------------
+
+23: INSTALANDO APACHE2, ATUALIZANDO CACHE DO APY E CONFIGURANDO APACHE
+
+#playbook apache2
+
+---
+- name: Install and start HTTPD
+  hosts: web
+  tasks:
+    -name: httpd package is present
+     apt:
+       name: apache2
+       state: present
+
+     -name: correct indec.html is present
+      copy:
+        src: files/index.html
+        dest: /var/www/html/index.html
+
+      -name: httpd is started
+       service:
+         name:apache2 
+	 state: started
+         enabled: true
+      
+
+----------------------------------------------------
+
+VARIAVEIS
+
+vars:
+  nomedavariavel: nome do que quer
+
+utilizando
+
+"{{nome da variavel}}"
+
+com aspas quando for a primeira informacao do texto
+.....
+
+apontando para o arquivo que contem as variaveis...
+
+vars_files:
+   - vars/áckage.yml
+
+
+variavel: recurso
+
+#variaveis no inventory ( não recomendado )
+
+[servers] neste caso a variavel aponta para um unico server
+
+examplo.com ansible_user=joe
+
+[servers] - neste caso a variavel fica disponivel para os 2 servers
+
+exemplo1.coom
+exmplo2.com
+[serves:vars]
+user=joe
+exemplo inventory
+
+[webservers]
+web ansible_host=192.168.0.168
+db  ansible_host=192.168.0.168
+
+[webservers:vars]
+cointain_line='Funcionou copiou colou funfou'
+
+-----------------------------------------------------------------------------------
+
+#Definindo a variavel pela linha de comando
+
+ansible-playbook meuplaybook.yml -e "variavel=valor"
+
+#Variaveis registradas ( mostra o log da instalação)
+
+
+---------------------------------------
+
+
+Controle de tarefas
+
+register: install_result
+debug: var=install_result
+
+-----------------------------------
+
+Loop - para realizar lista de tarefas
+
+Ex:1
+
+- name> Postifix is running
+service:
+name: postifix
+state: started
+
+-name Dovecot is running
+service:
+name: dovecot
+state: started
+
+--------
+ex2 com loop
+
+-name: Postifix ans davecot are running
+service:
+name: "{{item}}"
+state: started
+
+loop:
+- postfix
+- dovecot
+
+-----------------------------------------------------
+
+Possivel utilizar a lista dentro de uma variavel
+
+ex:
+vars:
+  mail_services:
+    - postfix
+    - dovecot
+tasks:
+- name: Postifix and Dovecot are running
+  service:
+    name:"{{ item }}"
+    state: started
+  loop:"{{ mail_services}}"
+
+
+------------------------------
+
+Loop usando Hash ou dicionario
+
+ex:
+-name: Users exist and are in the correct groups
+ user:
+   name: "{{ item.name }}"
+   state: present
+   groups: "{{ item.groups }}"
+ loop:
+   - name: jane
+     groups: whell
+   - name: joe
+     groups: root
+
+----------------------------------
+VARIAVEL DE REGISTRO PARA DEPURAÇÃO
+
+register: echo_results
+
+- name: Shome me de code echo_results
+  debug:
+    var: echo_results
+
+
+Execução de tarefas condicionais
+
+
+-------------------------------------
+
+Ansible VAULT
+
+ansible-vault create secret.yml ( comando para criar arquivo criptografado )
+
+export EDITOR=nano ( caso queira mudar o editor padrao )
+
+ 
+#em vez de inserir a senha do vault por entrada padrão voce pode usar um arquivo de senha do Vault para armazenar a senha. 
+proteja esse arquivo usando permissoes de arquivo e outros meios
+
+ansible-vault create --vault-password-file=vault-pass secret.yml
+
+Exemplo:
+
+#comando
+ansible-vault create secret.yml
+
+#dentro do arquivo
+username: ansbileuser1
+pw: qwe@123
+
+#playbook
+---
+-name: create user accounts for all our servers
+host:devservers
+become: True
+remote_user: devops
+var_files:
+  - secret.yml
+tasks:
+  - name: Creating user form secret.yml
+    user:  
+      name: "{{ username }}"
+      password: "{{ pw }}"
+
+--------------------------------
+
+#Criar arquivo contento a senha
+
+echo 'loves' > vaultPass
+
+ansible-playbook --vault-password-file=vaultPass playbook-testevault.yml
+
+
+-------------
+visualizando arquivo secreto
+
+ansible-vault view secret.yml
+
+ansible-vault edit secret.yml
+
+#critptografando arquvios ja criados
+
+ansible-vault encrypt secret.yml secret2.yml
+
+--output=NOMEDOAQRUIVO # caso voce queira criar arquivo criptografado mantendo o original
+
+#Descritptografar
+
+ansible=vault decrypt nomedoarquivo.yml --output=nome doaqruivo
+
+caso nao passe o parametro de saida  ele descriptografa o proprio arquivo
+
+#Alterar a sebga
+
+ansible-vault rejet secret.yml
+
+Ao usar um arquivo de senha do Vault escolha a opcap --new-vault-password-file
+
+ansible-vault rekey --new-vault-password-file=NOMEDOARUIVOquecontemasenha secret.yml
+
+
+---------------------------------------------------------------
+
+Organizando arquivos secretos!
+
+ansible-playbook --vault-id @prompt site.yml
+explicacao na doc
+
+---
+
+#Ansible Fatos
+#na doc
+
+-variaveis automaticamente descobertas ref ao host.
+ex:
+-nome do host
+versao do kernel
+interface
+ip
+so
+variaveis de ambiente
+cpus
+memoria
+espaco em disoco
+
+#Ex para visualizar os fatos
+
+- name: Fact dump
+  hosts: all
+  tasks:
+    - name: Print all facts
+    debug:
+     var: ansible_facts
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,57 @@
+---
+- name: Install and start Apache HTTPD
+  hosts: web
+  tasks:
+    - name: httpd package is present
+      apt:
+        name: 
+          - apache2
+          - firewalld
+        state: latest
+  
+    - name: correct index.html is present
+      copy:
+        src: files/index.html
+        dest: /var/www/html/index.html
+
+    - name: Enable service apache 2
+      service:
+        name: apache2
+        state: started
+        enabled: true
+        
+    - name: Enable firewalld and running
+      service:
+        name: firewalld
+        state: started
+        enabled: true
+
+    - name: Firewalld permits http service
+      firewalld:
+        port: 80/tcp
+        permanent: true
+        state: enabled
+        immediate: yes 
+
+    - name: Verify if exist the line Funcionou!!!! Copiou!!!
+      lineinfile:
+        path: /var/www/html/index.html
+        line: 'Funcionou!!!! Copiou!!!'
+        state: present
+
+- name: Install mysqldb
+  hosts: db
+  # remote_user: usuarioDoHostDB
+  # become: yes
+  tasks:
+    - name: Install mysql
+      apt:
+        name: mysql-server
+        state: latest
+
+    - name: Enable service mysql
+      service:
+        name: mysql
+        enabled: true
+
+

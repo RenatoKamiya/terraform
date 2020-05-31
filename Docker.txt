@@ -1,0 +1,260 @@
+docker ps ( dados do container )
+docker image 
+docker ps -a ( dados mais completos )
+
+docker run -ti ubuntu /bin/bash ( entrar no terminal do docker #ti terminal interativo)
+docker run -d( sem terminal interativo)
+
+(dar update)
+
+sair do container sem finalizado ctrl +p +q
+docker attach containerID ( para voltar para dentro do container )
+docker pause containserID (pausar o container)
+docker unpause containerID (despausar)
+
+docker stats containerID (estatiticas)
+docker top containerID (estatisticas de consumo)
+
+docker rm containerID (remover)
+docker rm -f containerID ( remover forçado)
+
+----------------------------------
+
+Configurando limites memoria cpu
+#memoria
+
+docker run -ti --memory 512m --name nova_teste debian (definindo container com limite de memoria)
+docker inspect 581297559d1d | grep -i mem   ( verificando se foi aplicado)
+
+docker update -m 256m containerID novo_teste ( alterando a ram de um container em exec ) 
+
+#CPU
+
+docker run -ti --cpu-shares 1024 --name container1 debian
+docker run -ti --cpu-shares 1024 --name container2 debian
+docker run -ti --cpu-shares 1024 --name container3 debian
+
+docker inspect container1 container2 container3 | grep -i cpu
+
+docker update --cpu-shares 512 container1 ( alterando proporcao de uso cpu)
+
+---------------------
+
+08 - Volumes e container data-only
+
+Criando o diretorio na maquina docker da maquina host
+docker run -ti -v /volume ubuntu /bin/bash     
+
+docker run -ti -v /root/primeiro_dockerfile:/volume ubuntu   ( criando diretorio de maquina host compartilhada para a maquina docker)
+docker inspect -f {{.Mounts}} containerID ( verificando se esta ok)
+
+compartilhando volumes entre containers
+
+docker create -v /data --name dbdados centos
+
+-e ( parametros para passar variaveis de ambiente )
+--volume-from ( importar volume de outro container )
+
+docker run -d -p 5432:5432 --name pgsql1 --volumes-from dbdados -e POSTGRESQL_USER-docker -e POSTGRESQL_DB=docker kamui/postgresql
+docker run -d -p 5433:5432 --name pgsql2 --volumes-from dbdados -e POSTGRESQL_USER-docker -e POSTGRESQL_DB=docker kamui/postgresql
+
+
+
+-------------------------------------------------------------------
+V1 - 09 - Dockerfile
+
+cd /root/primeiro_dockerfile
+
+FROM centos
+MAINTAINER Renato Kamiya
+
+RUN apt-get update && apt-get install apache 2 && apt-get clean
+ADD opa.txt /diretorio/
+CMD ["sh", "-c", "echo", "$HOME"]
+LABEL Description="Bla bla versao  e etc"
+COPY opa.txt /diretorio/
+ENTRYPOINT ["/usr/bin/apache2ctl", "-D", "FOREGROUND"]
+ENV meunome="Renato Kamiya"
+EXPOSE 80
+USER kamiya
+WORKDIR /root
+VOLUME /diretorio
+
+
+
+Legenda:
+CMD parametro para entrepoint
+LABEL descrições
+ENTRYPOINT função principal do container se ele morrer o container morre
+ENV variavel de ambiente
+EXPOSE porta a ser exposta
+RUN ( Prefira executar os comandos na mesma linha para nao criar varias camadas )
+USER criar usuario default
+WORKDIR diretorio padrao 
+VOLUME
+
+---------------
+nano Dockerfile
+
+FROM debian
+RUN /bin/echo "LINUXtips VAAIIIIIII!!"
+
+docker build .
+docker build -t primeira_imagem:1.0 .
+
+
+--------------------------------------------
+-y ( instala sem interação)
+
+mkdir /root/dockerfiles
+cd /root/dockerfiles/
+mkdir apache
+cd apache
+nano Dockerfile
+
+FROM debian
+RUN apt-get update && apt-get install -y apache2 && apt-get clean
+ENV APACHE_LOCK_DIR="/var/lock"
+ENV APACHE_PID_FILE="/var/run/apache2.pid"
+ENV APACHE_RUN_USER="www-data"
+ENV APACHE_RUN_GROUP="www-data"
+ENV APACHE_LOG_DIR="/var/log/apache2"
+
+LABEL Description="WebServer"
+
+VOLUME /var/www/html
+
+EXPOSE 80
+
+
+------------------------------------------
+
+ DOCKER V1 - 12 - Docker Login, Docker push, Docker pull e o DockerHub
+docker login
+
+docker id: kamiyaraiz
+senha: padrãoGama
+
+docker inspect ( para ver os detalhes da imagem )
+docker history ( ver a evolução da construção do container)
+image layers
+
+
+docker images
+
+docker tag imageID kamiyaraiz/webserver:1.0
+
+docker push kamiyaraiz/webserver:1.0
+
+
+------------------------------------------------------------------
+
+13 - Criando o seu Docker Registry
+
+docker run -d 
+
+docker run -d -p 5000:5000 --restart=always --name registry registry:2
+
+docker tag 708bc6af7e5e localhost:5000/webserver:1.0
+
+docker push localhost:5000/webserver:1.0
+
+--------------------------------------------------------------
+- 14 - Configurando opções de rede dos containers
+
+docker run -ti --dns 8.8.8.8 debian  
+
+cat /etc/resolv/conf
+
+docker run -ti --hostname kamiyadns debian
+
+docker run -ti --name container1 debian
+
+docker run -ti --link container1 --name container2 debian
+
+docker run -ti --expose 80 debian
+
+docker run -ti --publish 8080:80 debian ( redirect de uma porta para outra host:container)
+
+docker run -ti --mac-address 12:35:....   
+
+docker run -ti --net=host debian (informações de rede ir do host para o container)
+-----------------------------------------------------------
+
+ 15 - Docker-Machine - Instalação e meu primeiro docker host
+
+  
+
+------------------------------------------
+
+17 - Docker Compose Parte #1
+
+docker-conple scale db=2
+
+build: . ( caminho dokckerfile )
+
+command ( executa um comando )
+
+dns ( dns server )
+dns_search ( especifica um search domain )
+
+dockerfile: ( indica um dockerfile alternativo)
+
+env_file: ( especifica um arquivo com variaveis de ambiente )
+environment: ( adiciona variaveis de ambiente)
+
+expose:( expõe a porta do container)
+
+external_links (linka um container com outro)
+
+extra_hosts ( adicona entrada no /etc/hosts do container )
+image: indica uma imagem
+
+labels: adiciona metadata ao container
+
+links = linkas containers dentro do mesmo docker=compose
+
+log_driver ( formato de log que quer usar )
+
+log_opt 
+
+net - modo do uso de rede
+
+ports - expoes as portas do host e do container
+
+volumes, volume_driver = monta volumes no container
+
+volumes_from = monta volumes atraves de outro container
+
+
+--------------------------------------------------------------
+
+
+19 - Cluster e Orquestração com Docker 1.12
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

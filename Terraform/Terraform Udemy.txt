@@ -1,0 +1,225 @@
+comandos
+terraform init
+terraform plan
+terraform apply
+
+Configurando um bucket
+//main.tf
+
+#  Configure the AWS Provider
+provider "aws" {
+    access_key = "AKIAT6MIRBYOTDRMRKGG"
+    secret_key = "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"
+    region     = "sa-east-1"
+}
+
+resource "aws_s3_bucket" "b" {
+  bucket = "my-tf-test-bucket-kamiya12345"
+  acl    = "private"
+
+  tags = {
+    Name        = "My bucket"
+    Environment = "Dev"
+  }
+}
+
+----------------
+
+#destruindo o bucket
+terraform destroy
+
+----------------------------------
+
+Interpolation --> verificar conceitos
+
+exempo de s3 bucket object
+
+resource "aws_s3_bucket_object" "object" {
+  bucket = "your_bucket_name"  ----> referenciar qual bucket será usado neste caso ${aws_s3_bucket.b.id} ( o parametro id é para que retorno apenas o nome do bucket nao o objeto inteiro )
+  key    = "new_object_key" ----> nome que o objeto será chamado na aws
+  source = "path/to/file" ------> caminho que o objeto esta no host
+ #etag = "${filemd5("path/to/file")}" -----> esta variavel faz com que as alterações sejam reconhecidas automaticamente 
+
+}
+
+terraform taint
+# não altera a infra mas marca o recurso as tainted ou seja o recurso foi modificado
+
+terraform taint aws_s3_bucket_object.object
+
+# o comando marca o recurso para ser destruido e recriado caso queira desmarcar usar o comando untaint
+
+terraform untaint aws_s3_bucket_object.object
+
+------------------------------------
+
+#Console e output
+
+terraform show
+ou
+terraform console #entra em um terminal e voce digita o nome do recurso que queira
+
+ex: de output
+
+output " bucket"{
+  value = "${aws_s3_bucket.b.id}"
+
+
+}
+output " etag"{
+  value = "${aws_s3_bucket_object.object.etag}"
+
+}
+
+----------------------------------------------------------
+#Variaveis
+variaveis.tf
+
+variable "region" {
+    default = "sa-east-1"
+    description = "São Paulo"
+}
+
+variable access_key {
+    default = "AKIAT6MIRBYOTDRMRKGG"
+  
+}
+
+variable "secret_key" { 
+default = "UK7Esa/JmXmFT7jilkFs/S7G7hNcq95yVYvoR9uz" 
+  
+}
+
+variable "ami" {
+    default = "ami-0b105ed6ad5255125"
+  
+}
+
+variable "type" {
+    default = "t2.micro"
+  
+}
+
+
+variable "tags" {
+    type ="map"
+    default = {
+        "Name" = "Nodejs"
+    }
+  
+}
+
+variable "ips" {
+  type = "list"
+  default = ["2001:0DB8:0000:0000:130F:0000:0000:140B","2001:DB8:0:54::"]
+}
+
+
+
+-----------------------------------------------------
+# é possivel sobrescrever a variavel por linha de comando
+-- apontando para um outro arquivo de variaveis
+terraform plan -var-file 'nomedoarquivo.tfvars'
+
+modulos
+estudar>
+
+(diretorio -> modulos)na pasta raiz setar o apontamento dos modulos que estaram na pasta subsequente
+(arquivo main.tf)
+provider "aws" {
+    region      = "${var.region}"
+  
+}
+
+resource  "random_id" "bucket" {
+    byte_length = 8
+  
+}
+
+module "bucket" { # nome primeiro bucket
+  source = "./s3"
+  
+  name ="my-bucket-${random_id.bucket.hex}"
+} 
+
+module "bucket-2" { # nome segundo bucket
+  source = "./s3"
+
+  name = "my-bucket-2-${random_id.bucket.hex}"
+  
+}
+
+
+(arquivo de variave diretorio -> modulos)
+
+variable "region" {
+  default     = "sa-east-1"
+  description = "São Paulo"
+}
+----
+(diretorio modulo>s3)
+(arquivo main.tf)
+
+resource "aws_s3_bucket" "this" {
+    bucket = "${var.name}"
+    acl    = "${var.acl}"
+
+    versioning {
+        enabled = "${var.versioning}"
+    }
+
+    tags = "${var.tags}"
+  
+}
+
+resource "aws_s3" "name" {
+  
+}
+
+
+----------------------------
+(aquivo variaveis)
+
+variable "name" {
+  
+}
+
+variable "acl" {
+  default = "private"
+}
+
+variable "versioning" {
+  default = false
+}
+
+variable "tags" {
+    type = "map"
+    default = {}
+  
+}
+
+-----------
+
+
+resource "aws_s3_bucket_object" "this" {
+    count = "${var.create_object ? 1: 0}" --> condicionar se o resource existir ele cria os recursos abaixo
+
+    bucket ="${aws_s3_bucket.this.id}"
+    key    ="${var.object_key}"
+    source ="${var.object_source}"
+    etag   = "{ms5(file(var.object_source))}"
+  
+}
+
+
+
+
+
+
+
+comando format, get, import e graph
+
+terraform fmt
+
+
+

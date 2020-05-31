@@ -1,0 +1,108 @@
+- Console de gerenciamento AWS
+IAM - gerenciador de usuario
+
+-criar usuario 
+
+####Salvar id chave de acesso e chave secreta
+
+mkdir /home/.aws
+cd.aws/
+vi credentials
+
+[user_aws]
+aws_access_key_id = " chave de acesso "
+aws_secret_access_key = " secret key "
+
+--------------------------------------------
+
+#Qualquer extensao .tf o terraform lê e executa
+
+#HCL linguagem padrao do terraform parecido com Json
+ex de arquivo de criacao de instancias:
+
+vim instances.tf
+
+provider "aws" {
+  region = "us-east-1"
+  shared_credentials_file = " /home/.aws/credentials"
+  profile = "user_aws"
+]
+
+resource "aws_instance" "nome_instancia" {
+  ami = "numero da ami que é a iso do provedor"
+  instance_type = "t2.micro"
+}
+
+#(exit)
+
+#Comandos para aplicar
+
+- terraform init
+- terraform apply
+
+vim instances.tf ( adicionar a key para acessar via ssh )
+
+
+provider "aws" {
+  region = "us-east-1"
+  shared_credentials_file = " /home/.aws/credentials"
+  profile = "user_aws"
+ 
+]
+
+resource "aws_instance" "nome_instancia" {
+  ami = "numero da ami que é a iso do provedor"
+  instance_type = "t2.micro"
+  key_name = "${aws_key_pair.my-key.key_name}"
+  security_groups = ["${aws_security_group.allow_ssh.name}"]
+
+}
+
+resource "aws_key_pair" "my-key" {
+  key_name = "my-key"
+  public_key = "$(file("~/.ssh/id_rsa.pub")}"
+
+}
+
+resource "aws_security_group" "allow_ssh" {
+  name = "allow_ssh"
+  ingress {
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  agress {
+    from_port = 0
+    to_port = 0
+    protocol = -1
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+output "example_public_dns" {
+  value = "${aws_instance.example.public.dns}"
+
+
+--------------------------------------------
+
+#Para destruir
+terraform plan --destroy
+
+terraform destroy
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
